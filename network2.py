@@ -189,8 +189,8 @@ class Network(object):
                 print "Accuracy on training data: {} / {}".format(
                     accuracy, n)
             if monitor_evaluation_cost:
-                # cost = self.total_cost(evaluation_data, lmbda, convert=True)
-                cost = self.total_cost(evaluation_data, lmbda, convert=False) ################# for AutoEncoder
+                cost = self.total_cost(evaluation_data, lmbda, convert=True)
+                #cost = self.total_cost(evaluation_data, lmbda, convert=False) ################# for AutoEncoder
                 evaluation_cost.append(cost)
                 print "Cost on evaluation data: {}".format(cost)
             if monitor_evaluation_accuracy:

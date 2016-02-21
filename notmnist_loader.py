@@ -34,16 +34,26 @@ def load_data():
     return training_data + 0.5,test_data + 0.5
     # return training_data,test_data
 
-def load_data_for_classifier():
+def load_data_for_classifier_noisy():
     train_dataset, train_labels,\
            test_dataset, test_labels, \
            valid_dataset, valid_labels = load_full_data()
     train_inputs = [np.reshape(x, (784, 1)) for x in train_dataset]
     test_inputs = [np.reshape(np.array(x), (784, 1)) for x in test_dataset]
-    train_data = zip(train_inputs, train_labels)
-    test_data = zip(test_inputs, test_labels)
+    train_results = [vectorized_result(y) for y in train_labels]
 
-    return train_data, test_data
+    for i in xrange(len(train_inputs)):
+        for j in xrange(len(train_inputs[i])):
+            #print training_data[i][j]
+            if train_inputs[i][j] >= 0.3:
+                train_inputs[i][j] = train_inputs[i][j] * np.random.normal(0.75, 0.15)
+            else:
+                train_inputs[i][j] = train_inputs[i][j] + np.random.uniform(0,0.6)
+    train = zip(train_inputs, train_results)
+
+    test = zip(test_inputs, test_labels)
+
+    return train, test
 
 def load_data_wrapper():
     train_dataset, train_labels,\
@@ -97,6 +107,16 @@ def add_noise2_loader():
                 noisy_test_data[i][j] = noisy_test_data[i][j] + np.random.uniform(0,0.6)
     test = zip(test, test)
     return train,test, train_labels, test_labels
+
+def vectorized_result(j):
+    """Return a 10-dimensional unit vector with a 1.0 in the j'th position
+    and zeroes elsewhere.  This is used to convert a digit (0...9)
+    into a corresponding desired output from the neural network.
+
+    """
+    e = np.zeros((10, 1))
+    e[j] = 1.0
+    return e
 
 # training_data,test_data = add_noise_loader()
 #
