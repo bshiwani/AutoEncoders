@@ -39,7 +39,8 @@ def load_data_for_classifier_noisy():
            test_dataset, test_labels, \
            valid_dataset, valid_labels = load_full_data()
     train_inputs = [np.reshape(x, (784, 1)) for x in train_dataset]
-    test_inputs = [np.reshape(np.array(x), (784, 1)) for x in test_dataset]
+    test_inputs = [np.reshape(x, (784, 1)) for x in test_dataset]
+    valid_inputs = [np.reshape(x, (784, 1)) for x in valid_dataset]
     train_results = [vectorized_result(y) for y in train_labels]
 
     for i in xrange(len(train_inputs)):
@@ -50,10 +51,10 @@ def load_data_for_classifier_noisy():
             else:
                 train_inputs[i][j] = train_inputs[i][j] + np.random.uniform(0,0.6)
     train = zip(train_inputs, train_results)
-
+    valid = zip(valid_inputs, valid_labels)
     test = zip(test_inputs, test_labels)
 
-    return train, test
+    return train, valid, test
 
 def load_data_wrapper():
     train_dataset, train_labels,\
@@ -87,9 +88,10 @@ def add_noise2_loader():
            valid_dataset, valid_labels = load_full_data()
     # training_data,test_data = load_data()
     training = [np.reshape(x, (784, 1)) for x in train_dataset]
-    test = [np.reshape(np.array(x), (784, 1)) for x in test_dataset]
+    valid = [np.reshape(x, (784, 1)) for x in valid_dataset]
+    test = [np.reshape(x, (784, 1)) for x in test_dataset]
+
     noisy_data = np.copy(training)
-    noisy_test_data = np.copy(test)
     for i in xrange(len(noisy_data)):
         for j in xrange(len(noisy_data[i])):
             #print training_data[i][j]
@@ -97,16 +99,39 @@ def add_noise2_loader():
                 noisy_data[i][j] = noisy_data[i][j] * np.random.normal(0.75, 0.15)
             else:
                 noisy_data[i][j] = noisy_data[i][j] + np.random.uniform(0,0.6)
-    train = zip(noisy_data, training)
-    for i in xrange(len(noisy_test_data)):
-        for j in xrange(len(noisy_test_data[i])):
-            #print training_data[i][j]
-            if noisy_test_data[i][j] >= 0.3:
-                noisy_test_data[i][j] = noisy_test_data[i][j] * np.random.normal(0.75, 0.15)
-            else:
-                noisy_test_data[i][j] = noisy_test_data[i][j] + np.random.uniform(0,0.6)
-    test = zip(test, test)
-    return train,test, train_labels, test_labels
+
+    train_data = zip(noisy_data, training)
+    valid_data = zip(valid, valid)
+    test_data = zip(test, test)
+    return train_data, valid_data, test_data, train_labels,valid_labels, test_labels
+
+def load_SDE_data(isNoisy = False):
+    train_dataset, train_labels,\
+           test_dataset, test_labels, \
+           valid_dataset, valid_labels = load_full_data()
+
+    training_inputs = [np.reshape(x, (784, 1)) for x in train_dataset]
+    test_inputs = [np.reshape(x, (784, 1)) for x in test_dataset]
+    valid_inputs = [np.reshape(x, (784, 1)) for x in valid_dataset]
+
+    if isNoisy:
+        training_inputs_noisy = np.copy(training_inputs)
+        for i in xrange(len(training_inputs_noisy)):
+            for j in xrange(len(training_inputs_noisy[i])):
+                #print training_data[i][j]
+                if training_inputs_noisy[i][j] >= 0.3:
+                    training_inputs_noisy[i][j] = training_inputs_noisy[i][j] * np.random.normal(0.75, 0.15)
+                else:
+                    training_inputs_noisy[i][j] = training_inputs_noisy[i][j] + np.random.uniform(0,0.6)
+
+        training_inputs = [training_inputs, training_inputs_noisy]
+
+    return training_inputs, train_labels, \
+                test_inputs, test_labels, \
+                valid_inputs, valid_labels
+
+
+
 
 def vectorized_result(j):
     """Return a 10-dimensional unit vector with a 1.0 in the j'th position

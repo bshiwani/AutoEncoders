@@ -146,7 +146,8 @@ class Network(object):
             monitor_evaluation_cost=False,
             monitor_evaluation_accuracy=False,
             monitor_training_cost=False,
-            monitor_training_accuracy=False):
+            monitor_training_accuracy=False,
+            isAutoEncoder=False):
         """Train the neural network using mini-batch stochastic gradient
         descent.  The ``training_data`` is a list of tuples ``(x, y)``
         representing the training inputs and the desired outputs.  The
@@ -189,8 +190,10 @@ class Network(object):
                 print "Accuracy on training data: {} / {}".format(
                     accuracy, n)
             if monitor_evaluation_cost:
-                cost = self.total_cost(evaluation_data, lmbda, convert=True)
-                #cost = self.total_cost(evaluation_data, lmbda, convert=False) ################# for AutoEncoder
+                if isAutoEncoder:
+                    cost = self.total_cost(evaluation_data, lmbda, convert=False) ################# for AutoEncoder
+                else:
+                    cost = self.total_cost(evaluation_data, lmbda, convert=True)
                 evaluation_cost.append(cost)
                 print "Cost on evaluation data: {}".format(cost)
             if monitor_evaluation_accuracy:
@@ -328,7 +331,6 @@ class Network(object):
 def load(filename):
     """Load a neural network from the file ``filename``.  Returns an
     instance of Network.
-
     """
     f = open(filename, "r")
     data = json.load(f)
