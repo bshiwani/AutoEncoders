@@ -11,9 +11,34 @@ import cPickle
 # Third-party libraries
 import numpy as np
 
+def load_new_test():
+    f = open("data/notMNIST_10000_test.pickle", "rb")
+    data = cPickle.load(f)
+    f.close()
+    test_dataset = data.get("test_dataset")
+    test_labels = data.get("test_labels")
+    return test_dataset + 0.5, test_labels
+
+def load_new_dataset():
+    test_dataset,test_labels = load_new_test()
+
+    test_dataset = test_dataset
+    train_inputs = test_dataset[:9000]
+    test_inputs = test_dataset[9000:]
+    new_train_inputs = [np.reshape(x, (784, 1)) for x in train_inputs]
+    new_test_inputs = [np.reshape(x, (784, 1)) for x in test_inputs]
+    train_data = zip(new_train_inputs, new_train_inputs)
+    test_data = zip(new_test_inputs, new_test_inputs)
+
+    new_train_labels = test_labels[:9000]
+    new_test_labels = test_labels[9000:]
+
+    return train_data, test_data, new_train_labels, new_test_labels
+
 def load_full_data():
     f = open("data/notMNIST_10000.pickle", "rb")
     data = cPickle.load(f)
+    f.close()
     train_dataset = data.get("train_dataset")
     train_labels = data.get("train_labels")
     test_dataset = data.get("test_dataset")
@@ -105,6 +130,14 @@ def add_noise2_loader():
     test_data = zip(test, test)
     return train_data, valid_data, test_data, train_labels,valid_labels, test_labels
 
+def load_test_data():
+    train_dataset, train_labels,\
+           test_dataset, test_labels, \
+           valid_dataset, valid_labels = load_full_data()
+    test_inputs = [np.reshape(x, (784, 1)) for x in test_dataset]
+
+    return zip(test_inputs, test_labels)
+
 def load_SDE_data(isNoisy = False):
     train_dataset, train_labels,\
            test_dataset, test_labels, \
@@ -156,5 +189,9 @@ def vectorized_result(j):
 # train_data, test_data, train_labels, test_labels = add_noise2_loader()
 #
 # print train_data[0][0][:10], train_data[0][1][:10]
+
+# train_data, test_data, train_labels, test_labels = load_new_dataset()
+#
+# print len(test_labels), len(train_labels)
 
 

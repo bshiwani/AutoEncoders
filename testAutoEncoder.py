@@ -88,20 +88,23 @@ def testAutoEncoder(training_data, test_data, save_fileName, sizes, epochs, mini
 # training_data,test_data = notmnist_loader.load_data_wrapper()
 
 ### load original data
-train_data,valid_data, test_data, \
-train_labels,valid_labels, test_labels = notmnist_loader.add_noise2_loader()
+# train_data,valid_data, test_data, \
+# train_labels,valid_labels, test_labels = notmnist_loader.add_noise2_loader()
+
+### load_new_data
+train_data, valid_data, train_labels, valid_labels = notmnist_loader.load_new_dataset()
 
 ### the first step. after you finished training this step, you can comment the folliwing line out
-testAutoEncoder(train_data, valid_data,save_fileName= "models/SAE_step1", sizes= [784, 500, 784],
-                epochs=20, mini_batch_size=10, eta=0.1, lmbda=0.0)
+# testAutoEncoder(train_data, valid_data,save_fileName= "models/SAE_step1", sizes= [784, 500, 784],
+#                 epochs=20, mini_batch_size=10, eta=0.1, lmbda=0.0)
 
 
 net1 = network2.load("models/SAE_step1")
-train_data1, valid_data1 = getIntermediateDataset(train_data[:1000], valid_data[:1000], net1)
+train_data1, valid_data1 = getIntermediateDataset(train_data, valid_data, net1)
 
 ### the second step, after you finished training this step, you can comment the folliwing line out
-testAutoEncoder(train_data1, valid_data1,save_fileName= "models/SAE_step2", sizes= [500, 100, 500],
-                epochs=20, mini_batch_size=10, eta=0.1, lmbda=0.0)
+# testAutoEncoder(train_data1, valid_data1,save_fileName= "models/SAE_step2", sizes= [500, 100, 500],
+#                 epochs=20, mini_batch_size=10, eta=0.1, lmbda=0.0)
 
 net2 = network2.load("models/SAE_step2")
 train_data2, valid_data2 = getLastDataset(train_data1, valid_data1, train_labels, valid_labels, net2)
@@ -111,7 +114,7 @@ net3 = network2.Network([100, 10],cost=network2.CrossEntropyCost)
 net3.SGD(train_data2, epochs=20, mini_batch_size=10, eta=0.1, lmbda=0.0,
          evaluation_data=valid_data2,
          monitor_training_cost=True, monitor_evaluation_cost=True,
-         monitor_training_accuracy=True, monitor_evaluation_accuracy=True)
+         monitor_training_accuracy=True, monitor_evaluation_accuracy=True, confusionMatrix=True)
 net3.save("models/SAE_step3")
 
 

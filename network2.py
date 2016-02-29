@@ -19,6 +19,8 @@ import sys
 
 # Third-party libraries
 import numpy as np
+from sklearn.metrics import confusion_matrix
+import pandas as pd
 
 
 #### Define the quadratic and cross-entropy cost functions
@@ -147,7 +149,7 @@ class Network(object):
             monitor_evaluation_accuracy=False,
             monitor_training_cost=False,
             monitor_training_accuracy=False,
-            isAutoEncoder=False):
+            isAutoEncoder=False, confusionMatrix=False):
         """Train the neural network using mini-batch stochastic gradient
         descent.  The ``training_data`` is a list of tuples ``(x, y)``
         representing the training inputs and the desired outputs.  The
@@ -185,7 +187,7 @@ class Network(object):
                 training_cost.append(cost)
                 print "Cost on training data: {}".format(cost)
             if monitor_training_accuracy:
-                accuracy = self.accuracy(training_data, convert=True)
+                accuracy = self.accuracy(training_data, convert=True, confusionMatrix=confusionMatrix)
                 training_accuracy.append(accuracy)
                 print "Accuracy on training data: {} / {}".format(
                     accuracy, n)
@@ -197,7 +199,7 @@ class Network(object):
                 evaluation_cost.append(cost)
                 print "Cost on evaluation data: {}".format(cost)
             if monitor_evaluation_accuracy:
-                accuracy = self.accuracy(evaluation_data)
+                accuracy = self.accuracy(evaluation_data, convert=False, confusionMatrix=confusionMatrix)
                 evaluation_accuracy.append(accuracy)
                 print "Accuracy on evaluation data: {} / {}".format(
                     self.accuracy(evaluation_data), n_data)
@@ -260,7 +262,7 @@ class Network(object):
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
         return (nabla_b, nabla_w)
 
-    def accuracy(self, data, convert=False):
+    def accuracy(self, data, convert=False, confusionMatrix = False):
         """Return the number of inputs in ``data`` for which the neural
         network outputs the correct result. The neural network's
         output is assumed to be the index of whichever neuron in the
@@ -283,12 +285,35 @@ class Network(object):
         mnist_loader.load_data_wrapper.
 
         """
+        results = []
         if convert:
-            results = [(np.argmax(self.feedforward(x)), np.argmax(y))
-                       for (x, y) in data]
+            if confusionMatrix:
+                y_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+                y_true = []
+                y_pred = []
+                for(x, y) in data:
+                    results.append((np.argmax(self.feedforward(x)), np.argmax(y)))
+                    y_true.append(int(np.argmax(y)))
+                    y_pred.append(np.argmax(self.feedforward(x)))
+                matrix = confusion_matrix(y_true, y_pred)
+                print "Confusion Matrix on training data:\n{}".format(pd.DataFrame(matrix, index=y_labels, columns=y_labels))
+            else:
+                results = [(np.argmax(self.feedforward(x)), np.argmax(y))
+                           for (x, y) in data]
         else:
-            results = [(np.argmax(self.feedforward(x)), y)
-                        for (x, y) in data]
+            if confusionMatrix:
+                y_labels = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+                y_true = []
+                y_pred = []
+                for(x, y) in data:
+                    results.append((np.argmax(self.feedforward(x)), y))
+                    y_true.append(y)
+                    y_pred.append(np.argmax(self.feedforward(x)))
+                matrix = confusion_matrix(y_true, y_pred)
+                print "Confusion Matrix on test data:\n{}".format(pd.DataFrame(matrix, index=y_labels, columns=y_labels))
+            else:
+                results = [(np.argmax(self.feedforward(x)), y)
+                            for (x, y) in data]
         return sum(int(x == y) for (x, y) in results)
 
     def autoEncodeAccuracy(self, data):
