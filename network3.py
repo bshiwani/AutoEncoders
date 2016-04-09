@@ -41,6 +41,8 @@ from theano.tensor.nnet import softmax
 from theano.tensor import shared_randomstreams
 from theano.tensor.signal import downsample
 
+import STL_loader
+
 # Activation functions for neurons
 def linear(z): return z
 def ReLU(z): return T.maximum(0.0, z)
@@ -77,8 +79,12 @@ def load_data_shared(filename="data/mnist.pkl.gz"):
         return shared_x, T.cast(shared_y, "int32")
     return [shared(training_data), shared(validation_data), shared(test_data)]
 
-#### load the notMNIST data
 def load_data_shared_notMNIST(filename):
+    """
+    load the notMNIST data
+    :param filename:
+    :return:
+    """
     f = open(filename, "rb")
     data = cPickle.load(f)
     f.close()
@@ -92,6 +98,7 @@ def load_data_shared_notMNIST(filename):
     train_dataset = np.reshape(train_dataset, (len(train_dataset),784))
     valid_dataset = np.reshape(valid_dataset, (len(valid_dataset),784))
     test_dataset = np.reshape(test_dataset, (len(test_dataset),784))
+
     def shared(input, labels):
         shared_x = theano.shared(
             np.asarray(input, dtype=theano.config.floatX), borrow = True
@@ -101,6 +108,25 @@ def load_data_shared_notMNIST(filename):
         )
         return shared_x, T.cast(shared_y, "int32")
     return [shared(train_dataset, train_labels), shared(valid_dataset, valid_labels), shared(test_dataset, test_labels)]
+
+def load_data_shared_STL_grayscale():
+    """
+    load STL-10 data set in grayscale
+    :return:
+    """
+    train_inputs, train_labels, test_inputs, test_labels = STL_loader.load_labled_data()
+    train_inputs = np.reshape(train_inputs, (len(train_inputs),9216))
+    test_inputs = np.reshape(test_inputs, (len(test_inputs),9216))
+    def shared(input, labels):
+        shared_x = theano.shared(
+            np.asarray(input, dtype=theano.config.floatX), borrow = True
+        )
+        shared_y = theano.shared(
+            np.asarray(labels, dtype=theano.config.floatX), borrow = True
+        )
+        return shared_x, T.cast(shared_y, "int32")
+    return [shared(train_inputs, train_labels), shared(test_inputs, test_labels)]
+
 
 #### Main class used to construct and train networks
 class Network(object):
@@ -126,16 +152,18 @@ class Network(object):
         self.output_dropout = self.layers[-1].output_dropout
 
     def SGD(self, training_data, epochs, mini_batch_size, eta,
-            validation_data, test_data, lmbda=0.0):
+            validation_data, test_data = None, lmbda=0.0):
         """Train the network using mini-batch stochastic gradient descent."""
         training_x, training_y = training_data
         validation_x, validation_y = validation_data
-        test_x, test_y = test_data
+        if test_data:
+            test_x, test_y = test_data
+            num_test_batches = size(test_data)/mini_batch_size
 
         # compute number of minibatches for training, validation and testing
         num_training_batches = size(training_data)/mini_batch_size
         num_validation_batches = size(validation_data)/mini_batch_size
-        num_test_batches = size(test_data)/mini_batch_size
+
 
         # define the (regularized) cost function, symbolic gradients, and updates
         l2_norm_squared = sum([(layer.w**2).sum() for layer in self.layers])
@@ -164,20 +192,21 @@ class Network(object):
                 self.y:
                 validation_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
             })
-        test_mb_accuracy = theano.function(
-            [i], self.layers[-1].accuracy(self.y),
-            givens={
-                self.x:
-                test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
-                self.y:
-                test_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            })
-        self.test_mb_predictions = theano.function(
-            [i], self.layers[-1].y_out,
-            givens={
-                self.x:
-                test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
-            })
+        if test_data:
+            test_mb_accuracy = theano.function(
+                [i], self.layers[-1].accuracy(self.y),
+                givens={
+                    self.x:
+                    test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size],
+                    self.y:
+                    test_y[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+                })
+            self.test_mb_predictions = theano.function(
+                [i], self.layers[-1].y_out,
+                givens={
+                    self.x:
+                    test_x[i*self.mini_batch_size: (i+1)*self.mini_batch_size]
+                })
         # Do the actual training
         best_validation_accuracy = 0.0
         for epoch in xrange(epochs):
@@ -203,7 +232,8 @@ class Network(object):
         print("Finished training network.")
         print("Best validation accuracy of {0:.2%} obtained at iteration {1}".format(
             best_validation_accuracy, best_iteration))
-        print("Corresponding test accuracy of {0:.2%}".format(test_accuracy))
+        if test_data:
+            print("Corresponding test accuracy of {0:.2%}".format(test_accuracy))
 
 #### Define layer types
 
