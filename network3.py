@@ -41,6 +41,8 @@ from theano.tensor.nnet import softmax
 from theano.tensor import shared_randomstreams
 from theano.tensor.signal import downsample
 
+from sklearn import cross_validation
+
 import STL_loader
 
 # Activation functions for neurons
@@ -99,25 +101,45 @@ def load_data_shared_notMNIST(filename):
     valid_dataset = np.reshape(valid_dataset, (len(valid_dataset),784))
     test_dataset = np.reshape(test_dataset, (len(test_dataset),784))
 
-    def shared(input, labels):
-        shared_x = theano.shared(
-            np.asarray(input, dtype=theano.config.floatX), borrow = True
-        )
-        shared_y = theano.shared(
-            np.asarray(labels, dtype=theano.config.floatX), borrow = True
-        )
-        return shared_x, T.cast(shared_y, "int32")
     return [shared(train_dataset, train_labels), shared(valid_dataset, valid_labels), shared(test_dataset, test_labels)]
 
-def load_data_shared_STL_grayscale():
+def load_data_shared_STL(grayscale=False):
     """
     load STL-10 data set in grayscale
     :return:
     """
-    train_inputs, train_labels, test_inputs, test_labels = STL_loader.load_labled_data()
-    train_inputs = np.reshape(train_inputs, (len(train_inputs),9216))
-    test_inputs = np.reshape(test_inputs, (len(test_inputs),9216))
-    def shared(input, labels):
+    train_inputs, train_labels, test_inputs, test_labels = STL_loader.load_labled_data(grayscale)
+    if grayscale:
+        train_inputs = np.reshape(train_inputs, (len(train_inputs),9216))
+        test_inputs = np.reshape(test_inputs, (len(test_inputs),9216))
+    else:
+        train_inputs = np.reshape(train_inputs, (len(train_inputs),27648))
+        test_inputs = np.reshape(test_inputs, (len(test_inputs),27648))
+    return [shared(train_inputs, train_labels), shared(test_inputs, test_labels)]
+
+def load_data_shared_STL_cv(grayscale=False, n_folds = 10):
+    """
+    load data, and creat folds
+    :return:
+    """
+    train_inputs, train_labels, test_inputs, test_labels = STL_loader.load_labled_data(grayscale)
+    if grayscale:
+        train_inputs = np.reshape(train_inputs, (len(train_inputs),9216))
+    else:
+        train_inputs = np.reshape(np.ndarray(train_inputs), (len(train_inputs),27648))
+
+    folds = []
+    cv = cross_validation.KFold(len(train_labels), n_folds=n_folds, shuffle=True)
+    for trainCV, testCV in cv:
+        cv_train_inputs = map(train_inputs.__getitem__, trainCV)
+        cv_train_labels = map(train_labels.__getitem__, trainCV)
+        cv_test_inputs = map(train_inputs.__getitem__, testCV)
+        cv_test_labesl = map(train_labels.__getitem__, testCV)
+        folds.append([shared(cv_train_inputs, cv_train_labels), shared(cv_test_inputs, cv_test_labesl)])
+
+    return folds
+
+def shared(input, labels):
         shared_x = theano.shared(
             np.asarray(input, dtype=theano.config.floatX), borrow = True
         )
@@ -125,8 +147,6 @@ def load_data_shared_STL_grayscale():
             np.asarray(labels, dtype=theano.config.floatX), borrow = True
         )
         return shared_x, T.cast(shared_y, "int32")
-    return [shared(train_inputs, train_labels), shared(test_inputs, test_labels)]
-
 
 #### Main class used to construct and train networks
 class Network(object):

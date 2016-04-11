@@ -5,6 +5,9 @@ import gzip
 import tarfile
 import numpy as np
 
+# from theano import function as T_function
+# import theano.tensor as T
+
 import stl10_input
 
 train_X_path = "data/stl10_binary/train_X.bin"
@@ -20,17 +23,21 @@ def unzip_data():
     """
     tarfile.open("data/stl10_binary.tar.gz", 'r:gz').extractall("data/")
 
-def load_labled_data():
+def load_labled_data(grayscale = False):
     """
     The value of labels should start from 0
-    Do we need to normalize the data to be between 0-1?
+    Do we need to normalize the data to be between 0-1? no need currently, otherwise double value needs more memory
+    Grayscale the images
     :return:
     """
     train_inputs = stl10_input.read_all_images(train_X_path)
     train_labels = stl10_input.read_labels(train_y_path)
     test_inputs = stl10_input.read_all_images(test_X_path)
     test_labels = stl10_input.read_labels(test_y_path)
-    return grayScaler(train_inputs)/255.0, train_labels - 1, grayScaler(test_inputs)/255.0, test_labels - 1
+    if grayscale:
+        return grayScaler(train_inputs)/255.0, train_labels - 1, grayScaler(test_inputs)/255.0, test_labels - 1
+    else:
+        return train_inputs, train_labels - 1, test_inputs, test_labels - 1
 
 def load_unlabeld_data():
     data = stl10_input.read_all_images(unlabeled_X_path)
@@ -52,5 +59,9 @@ def grayScaler(data):
     :return:
     """
     return np.dot(data, np.array([0.299, 0.587, 0.114]))
+
+# train_inputs, train_labels, test_inputs, test_labels = load_labled_data()
+#
+# print train_inputs.shape
 
 

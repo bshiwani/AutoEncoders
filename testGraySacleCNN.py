@@ -1,9 +1,8 @@
 
 from network3 import sigmoid, tanh, ReLU, Network
-from network3 import ConvPoolLayer, FullyConnectedLayer, SoftmaxLayer, load_data_shared_STL_grayscale
-from sklearn import cross_validation
+from network3 import ConvPoolLayer, FullyConnectedLayer, SoftmaxLayer, load_data_shared_STL, load_data_shared_STL_cv
 
-training_data, test_data = load_data_shared_STL_grayscale()
+training_data, test_data = load_data_shared_STL(grayscale=True)
 
 def CNN(training_data, test_data = None, epochs = 20, mini_batch_size = 20):
     print "CNN"
@@ -27,12 +26,11 @@ def CNN(training_data, test_data = None, epochs = 20, mini_batch_size = 20):
     net.SGD(training_data, epochs, mini_batch_size, 0.1, validation_data = test_data)
 
 
-def CV_run(training_data):
-    cv = cross_validation.KFold(len(training_data), n_folds=10, shuffle=True)
-    for trainCV, testCV in cv:
-        cv_train = map(training_data.__getitem__, trainCV)
-        cv_test = map(training_data.__getitem__, testCV)
-        CNN(cv_train, cv_test)
+def CV_run(n_folds = 10):
+    folds = load_data_shared_STL_cv(grascale = True,n_folds = n_folds)
+    for i in xrange(len(folds)):
+        print "fold {}".format(i)
+        CNN(folds[i][0], folds[i][1])
 
 def testModel(training_data, test_data = None, epochs = 20, mini_batch_size = 16):
     net = Network([
@@ -43,4 +41,5 @@ def testModel(training_data, test_data = None, epochs = 20, mini_batch_size = 16
         mini_batch_size= mini_batch_size)
     net.SGD(training_data, epochs, mini_batch_size, 0.05, validation_data = test_data)
 
-CNN(training_data = training_data, test_data = test_data)
+# CV_run(n_folds=5)
+CNN(training_data=training_data, test_data=test_data)
